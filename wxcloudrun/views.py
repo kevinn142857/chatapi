@@ -1,10 +1,11 @@
 import json
 import logging
+import requests
+import openai
 
 from django.http import JsonResponse
 from django.shortcuts import render
 from wxcloudrun.models import Counters
-
 
 logger = logging.getLogger('log')
 
@@ -33,7 +34,7 @@ def counter(request, _):
         rsp = update_count(request)
     else:
         rsp = JsonResponse({'code': -1, 'errorMsg': '请求方式错误'},
-                            json_dumps_params={'ensure_ascii': False})
+                           json_dumps_params={'ensure_ascii': False})
     logger.info('response result: {}'.format(rsp.content.decode('utf-8')))
     return rsp
 
@@ -47,7 +48,7 @@ def get_count():
         data = Counters.objects.get(id=1)
     except Counters.DoesNotExist:
         return JsonResponse({'code': 0, 'data': 0},
-                    json_dumps_params={'ensure_ascii': False})
+                            json_dumps_params={'ensure_ascii': False})
     return JsonResponse({'code': 0, 'data': data.count},
                         json_dumps_params={'ensure_ascii': False})
 
@@ -77,7 +78,7 @@ def update_count(request):
         data.count += 1
         data.save()
         return JsonResponse({'code': 0, "data": data.count},
-                    json_dumps_params={'ensure_ascii': False})
+                            json_dumps_params={'ensure_ascii': False})
     elif body['action'] == 'clear':
         try:
             data = Counters.objects.get(id=1)
@@ -85,7 +86,32 @@ def update_count(request):
         except Counters.DoesNotExist:
             logger.info('record not exist')
         return JsonResponse({'code': 0, 'data': 0},
-                    json_dumps_params={'ensure_ascii': False})
+                            json_dumps_params={'ensure_ascii': False})
     else:
         return JsonResponse({'code': -1, 'errorMsg': 'action参数错误'},
-                    json_dumps_params={'ensure_ascii': False})
+                            json_dumps_params={'ensure_ascii': False})
+
+
+def message(request, _):
+    """
+    获取当前计数
+    """
+
+    rsp = JsonResponse({'code': 0, 'errorMsg': ''}, json_dumps_params={'ensure_ascii': False})
+    if request.method == 'GET' or request.method == 'get':
+        rsp = get_count()
+    elif request.method == 'POST' or request.method == 'post':
+        headers = {
+            'Content-Type': 'application/json'
+        }
+
+        body_unicode = request.body.decode('utf-8')
+        payload = body_unicode
+        res = requests.request("POST", 'http://43.129.24.92:5000/message', headers=headers, data=payload)
+        rsp = JsonResponse({'code': 200, 'data': res.text},
+                           json_dumps_params={'ensure_ascii': False})
+    else:
+        rsp = JsonResponse({'code': -1, 'errorMsg': '请求方式错误'},
+                           json_dumps_params={'ensure_ascii': False})
+    logger.info('response result: {}'.format(rsp.content.decode('utf-8')))
+    return rsp
