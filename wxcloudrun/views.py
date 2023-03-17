@@ -106,7 +106,7 @@ def message(request, _):
         }
 
         body_unicode = request.body.decode('utf-8')
-        payload = body_unicode
+        payload = body_unicode.decode("latin1")
         res = requests.request("POST", 'http://43.129.24.92:5000/message', headers=headers, data=payload)
         rsp = JsonResponse({'code': 200, 'data': res.text},
                            json_dumps_params={'ensure_ascii': False})
